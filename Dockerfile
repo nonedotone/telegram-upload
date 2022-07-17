@@ -6,9 +6,9 @@ ENV PYTHONPATH=/app/
 VOLUME /config
 VOLUME /files
 
-RUN mkdir /app
+RUN mkdir /app && apt-get update -y &&  apt-get install ffmpeg -y
 COPY requirements.txt /tmp/
-RUN pip install -r /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt && pip install pillow
 COPY telegram_upload/ /app/telegram_upload/
 WORKDIR /files
 
