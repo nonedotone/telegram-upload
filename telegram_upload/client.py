@@ -48,7 +48,8 @@ def phone_match(value):
 
 
 def get_progress_bar(action, file, length):
-    bar = click.progressbar(label='{} "{}"'.format(action, file), length=length)
+    bar = click.progressbar(
+        label='{} "{}"'.format(action, file), length=length)
 
     def progress(current, total):
         bar.pos = 0
@@ -81,7 +82,8 @@ def parse_proxy_string(proxy: Union[str, None]):
         'socks5': socks.SOCKS5,
     }.get(proxy_parsed.scheme)
     if proxy_type is None:
-        raise TelegramProxyError('Unsupported proxy type: {}'.format(proxy_parsed.scheme))
+        raise TelegramProxyError(
+            'Unsupported proxy type: {}'.format(proxy_parsed.scheme))
     return (proxy_type, proxy_parsed.hostname, proxy_parsed.port, True,
             proxy_parsed.username, proxy_parsed.password)
 
@@ -101,7 +103,8 @@ class Client(TelegramClient):
 
     def start(
             self,
-            phone=lambda: click.prompt('Please enter your phone', type=phone_match),
+            phone=lambda: click.prompt(
+                'Please enter your phone', type=phone_match),
             password=lambda: getpass.getpass('Please enter your password: '),
             *,
             bot_token=None, force_sms=False, code_callback=None,
@@ -113,7 +116,11 @@ class Client(TelegramClient):
             raise InvalidApiFileError(self.config_file)
 
     async def _send_album_media(self, entity, media):
-        entity = await self.get_input_entity(entity)
+        # entity = await self.get_input_entity(entity)
+        if ('-' in entity or '+' in entity) and (entity[1].isdigit() == True):
+            entity = await self.get_entity(int(entity))
+        else:
+            entity = await self.get_input_entity(entity)
         request = functions.messages.SendMultiMediaRequest(
             entity, reply_to_msg_id=None, multi_media=media,
             silent=None, schedule_date=None, clear_draft=None
@@ -126,12 +133,16 @@ class Client(TelegramClient):
     def send_files_as_album(self, entity, files, delete_on_success=False, print_file_id=False,
                             forward=()):
         for files_group in grouper(ALBUM_FILES, files):
-            media = self.send_files(entity, files_group, delete_on_success, print_file_id, forward, send_as_media=True)
+            media = self.send_files(
+                entity, files_group, delete_on_success, print_file_id, forward, send_as_media=True)
             async_to_sync(self._send_album_media(entity, media))
 
     def _send_file_message(self, entity, file, thumb, progress):
+        if ('-' in entity or '+' in entity) and (entity[1].isdigit() == True):
+            entity = int(entity)
         message = self.send_file(entity, file, thumb=thumb,
-                                 file_size=file.file_size if isinstance(file, File) else None,
+                                 file_size=file.file_size if isinstance(
+                                     file, File) else None,
                                  caption=file.file_caption, force_document=file.force_file,
                                  progress_callback=progress, attributes=file.file_attributes)
         if hasattr(message.media, 'document') and file.file_size != message.media.document.size:
@@ -141,7 +152,11 @@ class Client(TelegramClient):
         return message
 
     async def _send_media(self, entity, file: File, progress):
-        entity = await self.get_input_entity(entity)
+        # entity = await self.get_input_entity(entity)
+        if ('-' in entity or '+' in entity) and (entity[1].isdigit() == True):
+            entity = await self.get_entity(int(entity))
+        else:
+            entity = await self.get_input_entity(entity)
         supports_streaming = False  # TODO
         fh, fm, _ = await self._file_to_media(
             file, supports_streaming=file, progress_callback=progress)
@@ -172,15 +187,18 @@ class Client(TelegramClient):
         messages = []
         for file in files:
             has_files = True
-            progress, bar = get_progress_bar('Uploading', file.file_name, file.file_size)
+            progress, bar = get_progress_bar(
+                'Uploading', file.file_name, file.file_size)
 
             thumb = file.get_thumbnail()
             try:
                 try:
                     if send_as_media:
-                        message = async_to_sync(self._send_media(entity, file, progress))
+                        message = async_to_sync(
+                            self._send_media(entity, file, progress))
                     else:
-                        message = self._send_file_message(entity, file, thumb, progress)
+                        message = self._send_file_message(
+                            entity, file, thumb, progress)
                     messages.append(message)
                 finally:
                     bar.render_finish()
@@ -218,10 +236,12 @@ class Client(TelegramClient):
             if message.document.size > free_disk_usage():
                 raise TelegramUploadNoSpaceError(
                     'There is no disk space to download "{}". Space required: {}'.format(
-                        filename, sizeof_fmt(message.document.size - free_disk_usage())
+                        filename, sizeof_fmt(
+                            message.document.size - free_disk_usage())
                     )
                 )
-            progress, bar = get_progress_bar('Downloading', filename, message.document.size)
+            progress, bar = get_progress_bar(
+                'Downloading', filename, message.document.size)
             try:
                 self.download_media(message, progress_callback=progress)
             finally:
